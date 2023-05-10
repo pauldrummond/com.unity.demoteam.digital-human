@@ -1,6 +1,6 @@
 # Package: com.unity.demoteam.digital-human
 
-Library of tech features used to realize the digital human from *The Heretic* and *Enemies*.
+This is a fork of the Unity Demo Team Digital Human package. The only change so far is to Packages/com.unity.demoteam.digital-human/Runtime/Unity.DemoTeam.DigitalHuman.Runtime.asmdef, setting Auto Reference = true.
 
 ## Usage
 
