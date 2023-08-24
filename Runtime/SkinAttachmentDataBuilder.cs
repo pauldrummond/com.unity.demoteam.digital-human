@@ -16,6 +16,20 @@ namespace Unity.DemoTeam.DigitalHuman
     
     public static class SkinAttachmentDataBuilder
     {
+
+        public static readonly SkinAttachmentItem3 c_DummyItem = new SkinAttachmentItem3()
+        {
+            poseIndex = 0,
+            poseCount = 1,
+            baseVertex = 0,
+            targetFrameW = 1,
+            targetFrameDelta = Quaternion.identity,
+            targetOffset = Vector3.zero
+        };
+        
+        
+        
+        
         public static float SqDistTriangle(in float3 v1, in float3 v2, in float3 v3, in float3 p)
         {
             // see: "distance to triangle" by Inigo Quilez
@@ -103,6 +117,11 @@ namespace Unity.DemoTeam.DigitalHuman
         {
             int poseCount = 0;
 
+            if (vertex == -1)
+            {
+                return poseCount;
+            }
+            
             if(tryToOnlyAllowInterior)
             {
                 foreach (int triangle in meshInfo.meshAdjacency.vertexTriangles[vertex])
@@ -123,6 +142,8 @@ namespace Unity.DemoTeam.DigitalHuman
             return poseCount;
         }
 
+   
+
         public static unsafe void BuildDataAttachToVertex(SkinAttachmentData attachData, int* attachmentIndex,
             int* attachmentCount, in MeshInfo meshInfo, Vector3* targetPositions, Vector3* targetOffsets,
             Vector3* targetNormals, Vector4* targetTangents, int* targetVertices, int targetCount,  bool tryToOnlyAllowInterior)
@@ -135,14 +156,23 @@ namespace Unity.DemoTeam.DigitalHuman
             {
                 for (int i = 0; i != targetCount; i++)
                 {
+                    if (targetVertices[i] == -1)
+                    {
+                        item[itemIndex] = c_DummyItem;
+                        itemIndex += 1;
+                        Debug.LogWarningFormat("Couldn't find closest vertex to attach attachment vertex in index {0} (position was {1}). Inserting dummy data.", i, targetPositions[i]);
+                        continue;
+                    }
+                    
                     var poseCount = BuildPosesVertex(pose + poseIndex, meshInfo, ref targetPositions[i],
                         targetVertices[i], tryToOnlyAllowInterior);
+                    
                     if (poseCount == 0)
                     {
-                        Debug.LogError("no valid poses for target vertex " + i + ", aborting");
-                        poseIndex = attachData.poseCount;
-                        itemIndex = attachData.itemCount;
-                        break;
+                        item[itemIndex] = c_DummyItem;
+                        itemIndex += 1;
+                        Debug.LogError("no valid poses for target vertex " + i + ", ignoring");
+                        continue;
                     }
 
                     ref readonly var baseNormal = ref meshInfo.meshBuffers.vertexNormals[targetVertices[i]];
@@ -202,6 +232,7 @@ namespace Unity.DemoTeam.DigitalHuman
 
         public static unsafe int CountPosesVertex(in MeshInfo meshInfo, ref Vector3 target, int vertex, bool tryToOnlyAllowInterior)
         {
+            
             int poseCount = 0;
             if(tryToOnlyAllowInterior)
             {
@@ -246,6 +277,13 @@ namespace Unity.DemoTeam.DigitalHuman
         {
             for (int i = 0; i != targetCount; i++)
             {
+                //the input vertex was invalid, add dummy item
+                if (targetVertices[i] == -1)
+                {
+                    itemCount += 1;
+                    continue;
+                }
+                
                 poseCount += CountPosesVertex(meshInfo, ref targetPositions[i], targetVertices[i], settings.onlyAllowPoseTrianglesContainingAttachedPoint);
                 itemCount += 1;
             }
